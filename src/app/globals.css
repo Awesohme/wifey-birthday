@@ -1,0 +1,87 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fbfaf4;
+  --foreground: #22301f;
+}
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  /* Royal blue — her colour */
+  --color-royal-50: #eef2fe;
+  --color-royal-100: #dde6fd;
+  --color-royal-200: #c0d0fb;
+  --color-royal-400: #5d7ef0;
+  --color-royal-500: #3a5be4;
+  --color-royal-600: #2746d8;
+  --color-royal-700: #1f37ad;
+  --color-royal-900: #182768;
+
+  /* Meadow */
+  --color-leaf-300: #8fce86;
+  --color-leaf-500: #4d9e4f;
+  --color-leaf-700: #2f7038;
+  --color-leaf-900: #1d4424;
+
+  /* Glitter */
+  --color-gold-300: #ecd28a;
+  --color-gold-500: #d4a93c;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display), ui-serif, Georgia, serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* Soft shimmer used by tree ornaments */
+@keyframes sparkle {
+  0%, 100% { opacity: 0.35; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+.sparkle {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: sparkle 2.4s ease-in-out infinite;
+}
+
+/* Pendulum sway for dangling ornaments — rotates around the hang point */
+@keyframes sway {
+  from { transform: rotate(-4deg); }
+  to { transform: rotate(4deg); }
+}
+
+.ornament-sway {
+  transform-box: fill-box;
+  transform-origin: top center;
+  animation: sway 3s ease-in-out infinite alternate;
+}
+
+/* Gentle hover for the perched/closeup butterfly */
+@keyframes hover-drift {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.hover-drift {
+  animation: hover-drift 3.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
