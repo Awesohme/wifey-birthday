@@ -21,6 +21,25 @@ export type Wish = {
   message_text: string | null;
   media_url: string | null;
   media_type: MediaType | null;
+  voice_url?: string | null;
+  video_url?: string | null;
+  image_url?: string | null;
+  together_image_url?: string | null;
+  featured_rank?: number | null;
   status: "pending" | "approved" | "rejected";
+  created_at: string;
+};
+
+export type SiteMediaSection = "film" | "gallery";
+
+export type SiteMedia = {
+  id: string;
+  section: SiteMediaSection;
+  url: string;
+  storage_path: string;
+  alt_text: string;
+  caption: string | null;
+  year: number | null;
+  sort_order: number;
   created_at: string;
 };

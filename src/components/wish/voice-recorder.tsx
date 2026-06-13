@@ -88,15 +88,15 @@ export function VoiceRecorder({
         <button
           type="button"
           onClick={start}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-royal-200 bg-royal-50 px-4 py-5 text-sm font-medium text-royal-700"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-4 py-5 text-sm font-medium text-white transition hover:bg-white/15"
         >
-          <span aria-hidden className="text-lg">🎙️</span> Tap to start recording
+          Tap to start recording
         </button>
       )}
 
       {state === "recording" && (
-        <div className="flex items-center justify-between rounded-2xl bg-red-50 px-4 py-4">
-          <span className="flex items-center gap-2 text-sm font-medium text-red-700">
+        <div className="flex items-center justify-between rounded-2xl border border-red-300/15 bg-red-400/10 px-4 py-4">
+          <span className="flex items-center gap-2 text-sm font-medium text-red-200">
             <span className="size-2.5 animate-pulse rounded-full bg-red-500" aria-hidden />
             Recording {mm}:{ss}
           </span>
@@ -111,20 +111,20 @@ export function VoiceRecorder({
       )}
 
       {state === "recorded" && previewUrl && (
-        <div className="space-y-2 rounded-2xl bg-royal-50 p-4">
+        <div className="space-y-2 rounded-2xl border border-white/15 bg-white/10 p-4">
           { }
           <audio controls src={previewUrl} className="w-full" />
           <button
             type="button"
             onClick={discard}
-            className="text-sm font-medium text-royal-700 underline underline-offset-2"
+            className="text-sm font-medium text-white/60 underline underline-offset-2"
           >
             Discard and re-record
           </button>
         </div>
       )}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-300">{error}</p>}
     </div>
   );
 }

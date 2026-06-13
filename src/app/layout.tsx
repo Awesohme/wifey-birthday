@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Fraunces } from "next/font/google";
+import { Geist, Fraunces, Instrument_Serif, Inter } from "next/font/google";
 import { HER_NAME } from "@/lib/config";
 import "./globals.css";
 
@@ -11,6 +11,20 @@ const geistSans = Geist({
 const fraunces = Fraunces({
   variable: "--font-display",
   subsets: ["latin"],
+});
+
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-serif",
+  weight: "400",
+  style: ["normal", "italic"],
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -27,7 +41,8 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${fraunces.variable} h-full antialiased`}
+      suppressHydrationWarning
+      className={`${geistSans.variable} ${fraunces.variable} ${instrumentSerif.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { HER_NAME, UNLOCK_AT } from "@/lib/config";
 import { Butterfly } from "./butterfly";
+import { AmbientParticles } from "./three/ambient-particles";
 
 function remaining() {
   const ms = Math.max(0, UNLOCK_AT.getTime() - Date.now());
@@ -34,7 +35,8 @@ export function Countdown() {
   }, []);
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-8 bg-gradient-to-b from-royal-900 via-royal-700 to-leaf-900 px-6 text-center text-white">
+    <main className="relative flex min-h-dvh flex-col items-center justify-center gap-8 overflow-hidden bg-gradient-to-b from-royal-900 via-royal-700 to-leaf-900 px-6 text-center text-white">
+      <AmbientParticles />
       <div className="hover-drift opacity-90">
         <Butterfly size={150} flapDuration={1.4} />
       </div>

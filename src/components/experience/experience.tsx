@@ -1,13 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import { HER_NAME, type Wish } from "@/lib/config";
 import { Butterfly } from "./butterfly";
 import { Scene } from "./scene";
 import { WishCard } from "./wish-card";
+import { useWebGLSupport } from "./three/webgl-detector";
+import type { Stage } from "./three/types";
 
-type Stage = "closeup" | "flight" | "scene";
+const Scene3D = dynamic(() => import("./three/canvas-wrapper"), { ssr: false });
 
 const OPENED_KEY = "bt-opened";
 
@@ -23,11 +26,14 @@ export function Experience({ wishes }: { wishes: Wish[] }) {
   const [stage, setStage] = useState<Stage>("closeup");
   const [openWish, setOpenWish] = useState<Wish | null>(null);
   const [openedIds, setOpenedIds] = useState<Set<string>>(new Set());
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const webgl = useWebGLSupport();
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
       setOpenedIds(loadOpened());
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        setReducedMotion(true);
         setStage("scene");
       }
     });
@@ -57,8 +63,70 @@ export function Experience({ wishes }: { wishes: Wish[] }) {
   const seenAll = wishes.length > 0 && wishes.every((w) => openedIds.has(w.id));
 
   return (
-    <main className="fixed inset-0 overflow-hidden bg-[#aed5f2]">
-      {/* The meadow — blurred and pulled close during the intro, then settles */}
+    <main className="fixed inset-0 overflow-hidden bg-[#8ec3ec]">
+      {webgl === true ? (
+        /* The 3D meadow — camera flight replaces the old CSS zoom */
+        <Scene3D
+          wishes={wishes}
+          openedIds={openedIds}
+          onOpen={handleOpen}
+          revealOrnaments={stage === "scene"}
+          stage={stage}
+          reducedMotion={reducedMotion}
+        />
+      ) : webgl === false ? (
+        /* No WebGL — the original SVG meadow, exactly as before */
+        <SvgExperience
+          wishes={wishes}
+          openedIds={openedIds}
+          onOpen={handleOpen}
+          stage={stage}
+        />
+      ) : null}
+
+      {/* Title */}
+      {stage === "scene" && (
+        <motion.header
+          className="pointer-events-none absolute inset-x-0 top-[6dvh] z-10 px-6 text-center"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 1 }}
+        >
+          <h1 className="font-display text-4xl text-white drop-shadow-[0_2px_12px_rgba(31,55,173,0.45)] sm:text-5xl">
+            Happy Birthday, {HER_NAME}
+          </h1>
+          <p className="mt-2 text-sm text-white/85 drop-shadow-sm sm:text-base">
+            {wishes.length > 0
+              ? `${wishes.length} ${wishes.length === 1 ? "wish is" : "wishes are"} glittering on your tree. Tap one. ✨`
+              : "Your tree is taking root. Come back soon. 🌱"}
+          </p>
+          {seenAll && (
+            <p className="mt-1 text-xs text-amber-200 drop-shadow-sm">
+              You&apos;ve opened every single one. You are so loved. 💙
+            </p>
+          )}
+        </motion.header>
+      )}
+
+      <WishCard wish={openWish} onClose={() => setOpenWish(null)} />
+    </main>
+  );
+}
+
+/** Original 2D path, kept verbatim as the no-WebGL fallback */
+function SvgExperience({
+  wishes,
+  openedIds,
+  onOpen,
+  stage,
+}: {
+  wishes: Wish[];
+  openedIds: Set<string>;
+  onOpen: (wish: Wish) => void;
+  stage: Stage;
+}) {
+  return (
+    <>
       <motion.div
         className="absolute inset-0"
         initial={{ scale: 1.7, filter: "blur(14px)" }}
@@ -72,12 +140,11 @@ export function Experience({ wishes }: { wishes: Wish[] }) {
         <Scene
           wishes={wishes}
           openedIds={openedIds}
-          onOpen={handleOpen}
+          onOpen={onOpen}
           revealOrnaments={stage === "scene"}
         />
       </motion.div>
 
-      {/* The butterfly — full-screen closeup, then flies to the tree */}
       {stage !== "scene" && (
         <motion.div
           className="pointer-events-none absolute left-1/2 top-1/2 z-10"
@@ -99,7 +166,6 @@ export function Experience({ wishes }: { wishes: Wish[] }) {
         </motion.div>
       )}
 
-      {/* Perched butterfly once the scene settles */}
       {stage === "scene" && (
         <motion.div
           className="pointer-events-none absolute left-[55%] top-[34%] z-10"
@@ -112,32 +178,6 @@ export function Experience({ wishes }: { wishes: Wish[] }) {
           </div>
         </motion.div>
       )}
-
-      {/* Title */}
-      {stage === "scene" && (
-        <motion.header
-          className="pointer-events-none absolute inset-x-0 top-[6dvh] z-10 px-6 text-center"
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 1 }}
-        >
-          <h1 className="font-display text-4xl text-leaf-900 drop-shadow-sm sm:text-5xl">
-            Happy Birthday, {HER_NAME}
-          </h1>
-          <p className="mt-2 text-sm text-leaf-900/70 sm:text-base">
-            {wishes.length > 0
-              ? `${wishes.length} ${wishes.length === 1 ? "wish is" : "wishes are"} glittering on your tree. Tap one. ✨`
-              : "Your tree is taking root. Come back soon. 🌱"}
-          </p>
-          {seenAll && (
-            <p className="mt-1 text-xs text-royal-700">
-              You&apos;ve opened every single one. You are so loved. 💙
-            </p>
-          )}
-        </motion.header>
-      )}
-
-      <WishCard wish={openWish} onClose={() => setOpenWish(null)} />
-    </main>
+    </>
   );
 }

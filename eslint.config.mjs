@@ -12,7 +12,21 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored Draco decoder (three.js)
+    "public/draco/**",
   ]),
+  {
+    // R3F components mutate scene objects inside useFrame by design;
+    // the React Compiler lint rules don't apply to that imperative loop.
+    files: ["src/components/experience/three/**"],
+    rules: {
+      "react-hooks/immutability": "off",
+      "react-hooks/preserve-manual-memoization": "off",
+      "react-hooks/purity": "off",
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/refs": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

@@ -27,7 +27,7 @@ export function WishCard({ wish, onClose }: { wish: Wish | null; onClose: () => 
             role="dialog"
             aria-modal="true"
             aria-label={`Wish from ${wish.name}`}
-            className="max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl sm:p-8"
+            className="max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-3xl border border-white/50 bg-white/80 p-6 shadow-[0_24px_70px_-12px_rgba(31,55,173,0.45),0_0_40px_rgba(93,126,240,0.18)] backdrop-blur-2xl sm:p-8"
             initial={{ y: 60, scale: 0.92, opacity: 0 }}
             animate={{ y: 0, scale: 1, opacity: 1 }}
             exit={{ y: 40, scale: 0.95, opacity: 0 }}
@@ -46,25 +46,57 @@ export function WishCard({ wish, onClose }: { wish: Wish | null; onClose: () => 
               </button>
             </div>
 
-            {wish.media_type === "image" && wish.media_url && (
+            {(wish.image_url ??
+              (wish.media_type === "image" ? wish.media_url : null)) && (
               // eslint-disable-next-line @next/next/no-img-element -- remote Supabase media, unknown dimensions
               <img
-                src={wish.media_url}
+                src={
+                  wish.image_url ??
+                  (wish.media_type === "image" ? wish.media_url ?? "" : "")
+                }
                 alt={`A memory shared by ${wish.name}`}
                 className="mb-4 w-full rounded-2xl"
               />
             )}
-            {wish.media_type === "video" && wish.media_url && (
-               
-              <video controls playsInline src={wish.media_url} className="mb-4 w-full rounded-2xl bg-black" />
+            {wish.together_image_url && (
+              <div className="mb-4">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-royal-700">
+                  Together with Cynthia
+                </p>
+                {/* eslint-disable-next-line @next/next/no-img-element -- remote Supabase media, unknown dimensions */}
+                <img
+                  src={wish.together_image_url}
+                  alt={`${wish.name} with Cynthia`}
+                  className="w-full rounded-2xl"
+                />
+              </div>
             )}
-            {wish.media_type === "audio" && wish.media_url && (
+            {(wish.video_url ??
+              (wish.media_type === "video" ? wish.media_url : null)) && (
+              <video
+                controls
+                playsInline
+                src={
+                  wish.video_url ??
+                  (wish.media_type === "video" ? wish.media_url ?? "" : "")
+                }
+                className="mb-4 w-full rounded-2xl bg-black"
+              />
+            )}
+            {(wish.voice_url ??
+              (wish.media_type === "audio" ? wish.media_url : null)) && (
               <div className="mb-4 rounded-2xl bg-royal-50 p-4">
                 <p className="mb-2 text-xs font-medium uppercase tracking-wide text-royal-700">
-                  A voice note for you 🎙️
+                  A voice note for you
                 </p>
-                { }
-                <audio controls src={wish.media_url} className="w-full" />
+                <audio
+                  controls
+                  src={
+                    wish.voice_url ??
+                    (wish.media_type === "audio" ? wish.media_url ?? "" : "")
+                  }
+                  className="w-full"
+                />
               </div>
             )}
 
