@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { submitWish } from "@/app/wish/actions";
-import { HER_NAME, MAX_MEDIA_BYTES, type MediaType } from "@/lib/config";
+import { MAX_MEDIA_BYTES, type MediaType } from "@/lib/config";
 import { ImageCapture } from "./image-capture";
 import { VideoRecorder } from "./video-recorder";
 import { VoiceRecorder } from "./voice-recorder";
@@ -30,7 +30,9 @@ const EXT_BY_MIME: Record<string, string> = {
 };
 
 const lineInputClass =
-  "w-full border-0 border-b border-[#173b73]/25 bg-transparent px-0 py-2 font-serif text-xl text-[#102f5d] outline-none transition placeholder:text-[#173b73]/28 focus:border-[#244cc5] focus:ring-0";
+  "w-full border-0 border-b border-[#173b73]/28 bg-transparent px-0 py-2 font-serif text-xl text-[#102f5d] outline-none transition placeholder:text-[#173b73]/46 focus:border-[#244cc5] focus:ring-0";
+
+const WISH_RECIPIENT = "Cynthia";
 
 function extensionFor(blob: Blob | File) {
   if (blob instanceof File && blob.name.includes(".")) {
@@ -160,7 +162,7 @@ export function WishForm() {
           Your letter is on its way.
         </h2>
         <p className="mx-auto mt-5 max-w-md text-sm leading-7 text-[#173b73]/62">
-          It is safely waiting for {HER_NAME}, and will join the birthday
+          It is safely waiting for {WISH_RECIPIENT}, and will join the birthday
           journey after approval.
         </p>
         <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
@@ -199,7 +201,7 @@ export function WishForm() {
               Deliver to
             </p>
             <p className="mt-1 font-serif text-4xl leading-none text-[#173b73] sm:text-5xl">
-              {HER_NAME}
+              {WISH_RECIPIENT}
             </p>
             <p className="mt-2 font-serif text-lg italic text-[#244cc5]/75">
               Wherever she is loved
@@ -261,7 +263,7 @@ export function WishForm() {
               htmlFor="wish-msg"
               className="font-serif text-2xl italic text-[#173b73]"
             >
-              Dear {HER_NAME},
+              Dear {WISH_RECIPIENT},
             </label>
             <span className="text-[0.58rem] tracking-[0.16em] text-[#173b73]/32">
               {message.length} / 4000
@@ -271,10 +273,10 @@ export function WishForm() {
             id="wish-msg"
             value={message}
             onChange={(event) => setMessage(event.target.value)}
-            placeholder="Start with the memory that still makes you laugh..."
+            placeholder={`Write a birthday wish, blessing, or kind note for ${WISH_RECIPIENT}...`}
             rows={9}
             maxLength={4000}
-            className="wish-ruled-textarea mt-3 w-full resize-y border-0 bg-transparent px-1 py-0 font-serif text-xl leading-8 text-[#102f5d] outline-none placeholder:text-[#173b73]/28 focus:ring-0"
+            className="wish-ruled-textarea mt-3 w-full resize-y border-0 bg-transparent px-1 py-0 font-serif text-xl leading-8 text-[#102f5d] outline-none placeholder:text-[#173b73]/42 focus:ring-0"
           />
           <p className="mt-2 text-right font-serif text-lg italic text-[#173b73]/55">
             With love,
@@ -324,11 +326,11 @@ export function WishForm() {
 
           <MediaSection
             icon="together"
-            title={`Proof you and ${HER_NAME} happened`}
+            title={`Proof you and ${WISH_RECIPIENT} happened`}
             description="The blurry one, the beautiful one, or both of you mid-laugh."
           >
             <ImageCapture
-              label={`photo with ${HER_NAME}`}
+              label={`photo with ${WISH_RECIPIENT}`}
               onSelected={setTogetherImage}
             />
           </MediaSection>
@@ -354,7 +356,7 @@ export function WishForm() {
             <span>
               {phase === "sending"
                 ? "Passing it across the counter..."
-                : "Seal and send to Adabekee"}
+                : `Seal and send to ${WISH_RECIPIENT}`}
             </span>
             <span
               aria-hidden

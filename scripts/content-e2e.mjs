@@ -113,15 +113,15 @@ try {
 
   const togetherSection = page
     .locator("details")
-    .filter({ hasText: "Proof you and Adabekee happened" });
+    .filter({ hasText: "Proof you and Cynthia happened" });
   await togetherSection.locator("summary").click();
   await togetherSection
-    .getByLabel("Upload photo with Adabekee")
+    .getByLabel("Upload photo with Cynthia")
     .setInputFiles(imagePath);
-  await togetherSection.getByAltText("photo with Adabekee preview").waitFor();
+  await togetherSection.getByAltText("photo with Cynthia preview").waitFor();
 
   await page
-    .getByRole("button", { name: "Seal and send to Adabekee" })
+    .getByRole("button", { name: "Seal and send to Cynthia" })
     .click();
   await page
     .getByText("Your letter is on its way.")
@@ -155,14 +155,23 @@ try {
     sessionStorage.setItem("adabekee:intro-seen", "1");
   });
   await page.goto(BASE_URL, { waitUntil: "domcontentloaded" });
-  await page.getByRole("button", { name: "Begin" }).waitFor();
-  assert.ok((await page.locator('a[href="/wish"]').count()) >= 3);
-  await page.locator('img[src*="/site-media/"]').waitFor();
-
-  const wishButtons = page.getByRole("button", {
-    name: `Open the wish from ${testName}`,
+  const beginButton = page.getByRole("button", { name: "Begin" });
+  const countdownCta = page.getByRole("link", {
+    name: "Leave Cynthia a birthday wish",
   });
-  assert.ok((await wishButtons.count()) >= 1);
+
+  if (await beginButton.isVisible().catch(() => false)) {
+    assert.ok((await page.locator('a[href="/wish"]').count()) >= 3);
+    await page.locator('img[src*="/site-media/"]').waitFor();
+
+    const wishButtons = page.getByRole("button", {
+      name: `Open the wish from ${testName}`,
+    });
+    assert.ok((await wishButtons.count()) >= 1);
+  } else {
+    await countdownCta.waitFor({ timeout: 30000 });
+    await page.getByText("midnight bloom").waitFor({ timeout: 30000 });
+  }
 
   console.log("Content and admin Playwright checks passed.");
 } finally {

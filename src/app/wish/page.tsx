@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { HER_NAME } from "@/lib/config";
 import { WishForm } from "@/components/wish/wish-form";
 
+const WISH_RECIPIENT = "Cynthia";
+
 export const metadata: Metadata = {
-  title: `The midnight post office for ${HER_NAME}`,
-  description: `Send ${HER_NAME} a birthday letter, voice note, film, or photograph.`,
+  title: `The midnight post office for ${WISH_RECIPIENT}`,
+  description: `Send ${WISH_RECIPIENT} a birthday letter, voice note, film, or photograph.`,
 };
 
 const postalSteps = [
-  ["01", "Write the thing only you would know to say."],
+  ["01", "Write a birthday wish, prayer, or note that feels true to you."],
   ["02", "Tuck in a voice, film, or photograph if words feel too small."],
-  ["03", "Seal it. It stays private until it joins her birthday journey."],
+  ["03", "Seal it. It stays private until it joins Cynthia's birthday journey."],
 ] as const;
 
 export default function WishPage() {
@@ -41,7 +42,7 @@ export default function WishPage() {
           Celebration
         </Link>
         <p className="font-serif text-lg italic text-[#ecd28a]">
-          Post for {HER_NAME}
+          Post for {WISH_RECIPIENT}
         </p>
       </nav>
 
@@ -61,8 +62,8 @@ export default function WishPage() {
           </h1>
           <p className="mt-8 max-w-md text-sm leading-7 text-[#f5eddc]/58 sm:text-base">
             There is one desk open tonight, and every letter leaving it is
-            addressed to {HER_NAME}. No perfect birthday speech required. Just
-            send a piece of your actual history with her.
+            addressed to {WISH_RECIPIENT}. No inside history required. Just
+            send a kind wish from your corner of the community.
           </p>
 
           <div className="mt-10 max-w-md border-y border-[#f5eddc]/13 py-2">
