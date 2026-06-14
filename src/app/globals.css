@@ -52,6 +52,14 @@ body {
   font-family: var(--font-display);
 }
 
+/* Slow rotation for the wish-button medallion */
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin-slow 7s linear infinite;
+}
+
 /* Soft shimmer used by tree ornaments */
 @keyframes sparkle {
   0%, 100% { opacity: 0.35; transform: scale(0.8); }
