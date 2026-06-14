@@ -9,12 +9,6 @@ export const metadata: Metadata = {
   description: `Send ${WISH_RECIPIENT} a birthday letter, voice note, film, or photograph.`,
 };
 
-const postalSteps = [
-  ["01", "Write a birthday wish, prayer, or note that feels true to you."],
-  ["02", "Tuck in a voice, film, or photograph if words feel too small."],
-  ["03", "Seal it. It stays private until it joins Cynthia's birthday journey."],
-] as const;
-
 export default function WishPage() {
   return (
     <main className="wish-night relative min-h-dvh overflow-hidden bg-[#06142b] px-4 pb-16 pt-6 text-[#f5eddc] sm:px-6 sm:pb-24 sm:pt-8">
@@ -46,52 +40,7 @@ export default function WishPage() {
         </p>
       </nav>
 
-      <div className="relative mx-auto mt-12 grid max-w-6xl gap-12 lg:mt-20 lg:grid-cols-[0.72fr_1.28fr] lg:gap-16">
-        <aside className="lg:sticky lg:top-10 lg:self-start">
-          <p className="text-[0.68rem] uppercase tracking-[0.38em] text-[#ecd28a]/72">
-            Open after midnight · 22 June
-          </p>
-          <h1
-            className="mt-6 max-w-lg text-[clamp(3.7rem,8vw,7.4rem)] leading-[0.78] tracking-[-0.055em]"
-            style={{ fontFamily: "var(--font-serif)" }}
-          >
-            The midnight
-            <em className="mt-3 block pl-[0.48em] text-[#8ba5ff]">
-              post office.
-            </em>
-          </h1>
-          <p className="mt-8 max-w-md text-sm leading-7 text-[#f5eddc]/58 sm:text-base">
-            There is one desk open tonight, and every letter leaving it is
-            addressed to {WISH_RECIPIENT}. No inside history required. Just
-            send a kind wish from your corner of the community.
-          </p>
-
-          <div className="mt-10 max-w-md border-y border-[#f5eddc]/13 py-2">
-            {postalSteps.map(([number, copy]) => (
-              <div
-                key={number}
-                className="grid grid-cols-[2rem_1fr] gap-3 border-b border-[#f5eddc]/10 py-4 last:border-b-0"
-              >
-                <span className="text-[0.65rem] tracking-[0.2em] text-[#ecd28a]/65">
-                  {number}
-                </span>
-                <p className="text-sm leading-6 text-[#f5eddc]/48">{copy}</p>
-              </div>
-            ))}
-          </div>
-
-          <div
-            aria-hidden
-            className="wish-postmark mt-12 hidden size-32 rotate-[-12deg] items-center justify-center rounded-full border border-[#8ba5ff]/38 text-center text-[0.58rem] uppercase leading-5 tracking-[0.24em] text-[#8ba5ff]/55 lg:flex"
-          >
-            Lagos
-            <br />
-            night mail
-            <br />
-            22 · 06 · 26
-          </div>
-        </aside>
-
+      <div className="relative mx-auto mt-10 w-full max-w-2xl lg:mt-16">
         <WishForm />
       </div>
     </main>

@@ -2,15 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { HER_NAME, UNLOCK_AT } from "@/lib/config";
-
-const FLOATERS = Array.from({ length: 12 }, (_, index) => ({
-  delay: index * 0.22,
-  left: `${8 + (index * 7) % 84}%`,
-  top: `${10 + (index * 11) % 76}%`,
-  size: 40 + (index % 4) * 28,
-}));
 
 function remaining() {
   const ms = Math.max(0, UNLOCK_AT.getTime() - Date.now());
@@ -23,29 +16,54 @@ function remaining() {
   };
 }
 
-function CountdownTile({ value, label }: { value: number; label: string }) {
+/** A single large serif numeral that flips up to the next value each tick. */
+function FlipUnit({
+  value,
+  label,
+  reduced,
+}: {
+  value: number;
+  label: string;
+  reduced: boolean;
+}) {
+  const display = String(value).padStart(2, "0");
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-      className="relative min-w-[84px] overflow-hidden rounded-[1.7rem] border border-white/12 bg-[#08182f]/78 px-4 py-5 text-center shadow-[0_18px_60px_rgba(0,0,0,0.28)] backdrop-blur-xl sm:min-w-[108px] sm:px-5 sm:py-6"
-    >
-      <div className="absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/55 to-transparent" />
-      <span
-        className="block text-[2.2rem] leading-none text-[#f7ead1] sm:text-[3.1rem]"
-        style={{ fontFamily: "var(--font-serif)" }}
-      >
-        {String(value).padStart(2, "0")}
-      </span>
-      <span className="mt-3 block text-[0.62rem] uppercase tracking-[0.34em] text-[#f7ead1]/48">
+    <div className="flex flex-col items-center">
+      <div className="relative h-[clamp(3.6rem,12vw,7rem)] w-[clamp(3rem,11vw,6rem)] overflow-hidden">
+        {/* glow pooled behind the numeral */}
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-[radial-gradient(circle,_rgba(214,179,107,0.22),_transparent_68%)] blur-xl"
+        />
+        <AnimatePresence mode="popLayout" initial={false}>
+          <motion.span
+            key={display}
+            initial={reduced ? false : { rotateX: -88, opacity: 0, y: "35%" }}
+            animate={{ rotateX: 0, opacity: 1, y: "0%" }}
+            exit={reduced ? { opacity: 0 } : { rotateX: 88, opacity: 0, y: "-35%" }}
+            transition={{ duration: 0.55, ease: [0.2, 0.7, 0.2, 1] }}
+            className="absolute inset-0 flex items-center justify-center tabular-nums text-[clamp(3rem,10vw,6rem)] leading-none text-[#f7ead1]"
+            style={{
+              fontFamily: "var(--font-serif)",
+              transformOrigin: "center",
+              textShadow:
+                "0 0 26px rgba(214,179,107,0.35), 0 0 60px rgba(77,121,255,0.18)",
+            }}
+          >
+            {display}
+          </motion.span>
+        </AnimatePresence>
+      </div>
+      <span className="mt-3 text-[0.6rem] uppercase tracking-[0.4em] text-[#f7ead1]/42 sm:text-[0.65rem]">
         {label}
       </span>
-    </motion.div>
+    </div>
   );
 }
 
 export function CinematicCountdown() {
+  const reduced = Boolean(useReducedMotion());
   const [time, setTime] = useState<ReturnType<typeof remaining> | null>(null);
 
   useEffect(() => {
@@ -61,104 +79,105 @@ export function CinematicCountdown() {
   }, []);
 
   return (
-    <main className="relative min-h-dvh overflow-hidden bg-[#071321] text-[#f7ead1]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(200,229,255,0.18),_transparent_38%),linear-gradient(180deg,_#0a1d38_0%,_#071321_44%,_#050d19_100%)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:72px_72px] opacity-[0.18]" />
-      <div className="absolute left-1/2 top-[-14rem] h-[36rem] w-[36rem] -translate-x-1/2 rounded-full bg-[#d6b36b]/18 blur-[120px]" />
-      <div className="absolute bottom-[-12rem] right-[-8rem] h-[28rem] w-[28rem] rounded-full bg-[#4d79ff]/16 blur-[120px]" />
+    <main className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-[#050d19] px-6 py-16 text-center text-[#f7ead1]">
+      {/* deep night base */}
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(20,40,78,0.9)_0%,_#070f1d_46%,_#04080f_100%)]"
+      />
 
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-        {FLOATERS.map((floater, index) => (
-          <motion.div
-            key={index}
-            className="absolute rounded-full border border-white/8 bg-white/[0.03]"
-            style={{
-              left: floater.left,
-              top: floater.top,
-              width: floater.size,
-              height: floater.size,
-            }}
-            animate={{ y: [0, -18, 0], opacity: [0.16, 0.38, 0.16] }}
-            transition={{
-              duration: 6 + (index % 4),
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: floater.delay,
-            }}
-          />
-        ))}
-      </div>
+      {/* slow drifting aurora ribbons */}
+      <motion.div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-[-18rem] h-[34rem] w-[44rem] -translate-x-1/2 rounded-full bg-[#d6b36b]/14 blur-[150px]"
+        animate={reduced ? undefined : { opacity: [0.5, 0.9, 0.5], scale: [1, 1.08, 1] }}
+        transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        aria-hidden
+        className="pointer-events-none absolute bottom-[-16rem] right-[-10rem] h-[30rem] w-[30rem] rounded-full bg-[#4d79ff]/16 blur-[150px]"
+        animate={reduced ? undefined : { opacity: [0.4, 0.75, 0.4], scale: [1, 1.12, 1] }}
+        transition={{ duration: 11, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
+      />
+      <motion.div
+        aria-hidden
+        className="pointer-events-none absolute bottom-[-12rem] left-[-8rem] h-[24rem] w-[24rem] rounded-full bg-[#244cc5]/14 blur-[140px]"
+        animate={reduced ? undefined : { opacity: [0.3, 0.6, 0.3] }}
+        transition={{ duration: 13, repeat: Infinity, ease: "easeInOut", delay: 3 }}
+      />
 
-      <div className="relative mx-auto flex min-h-dvh max-w-6xl flex-col justify-center px-6 py-12 sm:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
+      <div className="relative z-10 flex w-full max-w-3xl flex-col items-center">
+        <motion.p
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7 }}
-          className="mx-auto w-full max-w-5xl overflow-hidden rounded-[2rem] border border-white/12 bg-white/[0.03] p-5 shadow-[0_40px_140px_rgba(0,0,0,0.42)] backdrop-blur-xl sm:p-8 lg:p-12"
+          transition={{ duration: 0.8 }}
+          className="text-[0.62rem] uppercase tracking-[0.5em] text-[#d6b36b]/72 sm:text-[0.7rem]"
         >
-          <div className="rounded-[1.5rem] border border-white/10 bg-[linear-gradient(160deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] px-5 py-10 sm:px-8 sm:py-12 lg:px-12 lg:py-14">
-            <motion.p
-              initial={{ opacity: 0, letterSpacing: "0.18em" }}
-              animate={{ opacity: 1, letterSpacing: "0.34em" }}
-              transition={{ delay: 0.15, duration: 0.8 }}
-              className="text-center text-[0.72rem] uppercase text-[#f7ead1]/52"
-            >
-              22 June · Midnight reveal · A birthday in bloom
-            </motion.p>
+          22 June · Midnight reveal
+        </motion.p>
 
-            <motion.h1
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.25, duration: 0.8 }}
-              className="mx-auto mt-8 max-w-4xl text-center text-[clamp(3.7rem,10vw,8.8rem)] leading-[0.86] tracking-[-0.06em]"
-              style={{ fontFamily: "var(--font-serif)" }}
-            >
-              Cynthia&apos;s
-              <span className="block bg-gradient-to-r from-[#f7ead1] via-[#d6b36b] to-[#7fb2ff] bg-clip-text text-transparent">
-                midnight bloom
-              </span>
-            </motion.h1>
+        <motion.h1
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15, duration: 0.9 }}
+          className="mt-7 text-[clamp(3.4rem,12vw,7.5rem)] font-light leading-[0.84] tracking-[-0.04em]"
+          style={{ fontFamily: "var(--font-serif)" }}
+        >
+          {HER_NAME}
+        </motion.h1>
 
-            <motion.p
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.38, duration: 0.8 }}
-              className="mx-auto mt-6 max-w-2xl text-center text-sm leading-7 text-[#f7ead1]/62 sm:text-base"
-            >
-              The page is locked for now, but the celebration is already
-              gathering itself. When the clock turns, {HER_NAME}&apos;s story
-              opens in full.
-            </motion.p>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.32, duration: 0.9 }}
+          className="mt-4 max-w-md text-sm leading-7 text-[#f7ead1]/52"
+        >
+          The celebration is gathering itself. When the clock turns, her story
+          opens in full.
+        </motion.p>
 
-            {time && (
-              <div
-                className="mt-10 flex flex-wrap items-center justify-center gap-3 sm:gap-4"
-                aria-label="Countdown to reveal"
-              >
-                <CountdownTile value={time.days} label="days" />
-                <CountdownTile value={time.hours} label="hours" />
-                <CountdownTile value={time.minutes} label="minutes" />
-                <CountdownTile value={time.seconds} label="seconds" />
-              </div>
-            )}
+        {time && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45, duration: 0.9 }}
+            className="mt-14 flex items-start justify-center gap-4 sm:gap-9"
+            aria-label="Countdown to reveal"
+          >
+            <FlipUnit value={time.days} label="days" reduced={reduced} />
+            <span className="mt-[clamp(0.8rem,4vw,2.2rem)] text-[clamp(2rem,7vw,4rem)] leading-none text-[#f7ead1]/22">
+              :
+            </span>
+            <FlipUnit value={time.hours} label="hours" reduced={reduced} />
+            <span className="mt-[clamp(0.8rem,4vw,2.2rem)] text-[clamp(2rem,7vw,4rem)] leading-none text-[#f7ead1]/22">
+              :
+            </span>
+            <FlipUnit value={time.minutes} label="minutes" reduced={reduced} />
+            <span className="mt-[clamp(0.8rem,4vw,2.2rem)] text-[clamp(2rem,7vw,4rem)] leading-none text-[#f7ead1]/22">
+              :
+            </span>
+            <FlipUnit value={time.seconds} label="seconds" reduced={reduced} />
+          </motion.div>
+        )}
 
-            <motion.div
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.52, duration: 0.8 }}
-              className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
-            >
-              <Link
-                href="/wish"
-                className="inline-flex min-h-14 items-center justify-center rounded-full bg-[#f7ead1] px-8 py-4 text-sm font-semibold text-[#071321] transition hover:-translate-y-0.5 hover:bg-white"
-              >
-                Leave Cynthia a birthday wish
-              </Link>
-              <p className="text-center text-xs uppercase tracking-[0.24em] text-[#f7ead1]/38">
-                Wishes stay private until the reveal
-              </p>
-            </motion.div>
-          </div>
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6, duration: 0.9 }}
+          className="mt-16 flex flex-col items-center gap-4"
+        >
+          <Link
+            href="/wish"
+            className="group inline-flex min-h-13 items-center gap-2 rounded-full border border-[#d6b36b]/40 bg-[#f7ead1]/[0.04] px-8 py-4 text-sm font-medium text-[#f7ead1] backdrop-blur-sm transition hover:-translate-y-0.5 hover:border-[#d6b36b]/70 hover:bg-[#f7ead1]/[0.08]"
+          >
+            Leave {HER_NAME} a birthday wish
+            <span aria-hidden className="transition-transform group-hover:translate-x-1">
+              →
+            </span>
+          </Link>
+          <p className="text-[0.6rem] uppercase tracking-[0.3em] text-[#f7ead1]/32">
+            Wishes stay private until the reveal
+          </p>
         </motion.div>
       </div>
     </main>

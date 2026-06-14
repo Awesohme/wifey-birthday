@@ -13,6 +13,10 @@ import {
 const DOG_SIZE = 96;
 
 export function CursorDog() {
+  // Only show on devices with a real pointer — start hidden to avoid an SSR
+  // hydration mismatch, then confirm on the client. Touch devices have no
+  // cursor for the puppy to follow, so it just flashes on tap.
+  const [pointerFine, setPointerFine] = useState(false);
   const [visible, setVisible] = useState(false);
   const [facingRight, setFacingRight] = useState(true);
 
@@ -30,6 +34,16 @@ export function CursorDog() {
   });
 
   useEffect(() => {
+    const query = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const update = () => setPointerFine(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    if (!pointerFine) return;
+
     const onMove = (e: PointerEvent) => {
       mouseX.set(e.clientX - DOG_SIZE / 2 + 40);
       mouseY.set(e.clientY - DOG_SIZE / 2 + 40);
@@ -46,7 +60,9 @@ export function CursorDog() {
       document.removeEventListener("pointerleave", onLeave);
       document.removeEventListener("pointerenter", onEnter);
     };
-  }, [mouseX, mouseY]);
+  }, [mouseX, mouseY, pointerFine]);
+
+  if (!pointerFine) return null;
 
   return (
     <motion.div

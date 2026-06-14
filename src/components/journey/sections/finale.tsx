@@ -47,21 +47,6 @@ export function FinaleSection({ wishes }: FinaleProps) {
 
         <SlidingWishes wishes={wishes} />
 
-        <div className="mx-auto mt-16 max-w-xl rounded-[2rem] border border-white/10 bg-white/[0.04] px-6 py-8 text-center">
-          <p
-            className="text-2xl text-white"
-            style={{ fontFamily: "var(--font-serif)" }}
-          >
-            Have something only you can add?
-          </p>
-          <a
-            href="/wish"
-            className="mt-5 inline-flex rounded-full bg-white px-6 py-3 text-sm font-semibold text-[#071522] transition hover:-translate-y-0.5"
-          >
-            Leave a wish for {HER_NAME}
-          </a>
-        </div>
-
         {/* footer */}
         <footer className="mt-24 text-center">
           <p

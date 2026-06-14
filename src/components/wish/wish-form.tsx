@@ -8,8 +8,9 @@ import { MAX_MEDIA_BYTES, type MediaType } from "@/lib/config";
 import { ImageCapture } from "./image-capture";
 import { VideoRecorder } from "./video-recorder";
 import { VoiceRecorder } from "./voice-recorder";
+import { SealAnimation } from "./seal-animation";
 
-type Phase = "form" | "sending" | "done";
+type Phase = "form" | "sending" | "sealing" | "done";
 type SelectedMedia = Blob | File | null;
 type KeepsakeIcon = "voice" | "film" | "portrait" | "together";
 
@@ -64,10 +65,14 @@ export function WishForm() {
 
     const supabase = createClient();
     const path = `${prefix}/${crypto.randomUUID()}.${extensionFor(blob)}`;
+    // Strip codec params (e.g. "audio/webm;codecs=opus") — Supabase storage
+    // matches the full content-type against the bucket's MIME allowlist, which
+    // only lists the base types, so the suffix triggers a 415 rejection.
+    const contentType = (blob.type || "").split(";")[0] || undefined;
     const { error: uploadError } = await supabase.storage
       .from("wish-media")
       .upload(path, blob, {
-        contentType: blob.type || undefined,
+        contentType,
       });
     if (uploadError) {
       throw new Error(`${prefix} could not upload. Please try again.`);
@@ -126,7 +131,9 @@ export function WishForm() {
 
       const result = await submitWish(formData);
       if (!result.ok) throw new Error(result.error);
-      setPhase("done");
+      // Upload + save confirmed — play the seal animation, which advances to
+      // the thank-you screen on completion.
+      setPhase("sealing");
     } catch (submissionError) {
       setPhase("form");
       setError(
@@ -148,6 +155,16 @@ export function WishForm() {
     setPhase("form");
   }
 
+  if (phase === "sealing") {
+    return (
+      <SealAnimation
+        recipient={WISH_RECIPIENT}
+        preview={message}
+        onDone={() => setPhase("done")}
+      />
+    );
+  }
+
   if (phase === "done") {
     return (
       <section className="wish-paper relative overflow-hidden rounded-sm px-6 py-14 text-center text-[#102f5d] shadow-[0_45px_120px_rgba(0,0,0,0.45)] sm:px-12 sm:py-20">
@@ -156,14 +173,14 @@ export function WishForm() {
           <span className="font-serif text-5xl italic text-[#244cc5]">A</span>
         </div>
         <p className="mt-8 text-[0.65rem] uppercase tracking-[0.32em] text-[#173b73]/48">
-          Accepted at the midnight desk
+          Sealed and delivered
         </p>
         <h2 className="mt-4 font-serif text-5xl leading-none">
-          Your letter is on its way.
+          Thank you for your wish.
         </h2>
         <p className="mx-auto mt-5 max-w-md text-sm leading-7 text-[#173b73]/62">
-          It is safely waiting for {WISH_RECIPIENT}, and will join the birthday
-          journey after approval.
+          Your letter is safely waiting for {WISH_RECIPIENT}, and will join the
+          birthday journey after approval.
         </p>
         <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
           <button
@@ -353,17 +370,42 @@ export function WishForm() {
             disabled={phase === "sending"}
             className="group inline-flex min-h-14 flex-1 items-center justify-center gap-3 rounded-full bg-[#173b73] px-7 py-4 text-sm font-semibold text-[#f7f0df] shadow-[0_12px_30px_rgba(23,59,115,0.22)] transition hover:-translate-y-0.5 hover:bg-[#244cc5] disabled:cursor-wait disabled:opacity-60"
           >
+            {phase === "sending" && (
+              <svg
+                aria-hidden
+                viewBox="0 0 24 24"
+                className="size-4 animate-spin text-[#f7f0df]"
+                fill="none"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="9"
+                  stroke="currentColor"
+                  strokeOpacity="0.3"
+                  strokeWidth="3"
+                />
+                <path
+                  d="M21 12a9 9 0 0 0-9-9"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                />
+              </svg>
+            )}
             <span>
               {phase === "sending"
                 ? "Passing it across the counter..."
                 : `Seal and send to ${WISH_RECIPIENT}`}
             </span>
-            <span
-              aria-hidden
-              className="text-lg transition-transform group-hover:translate-x-1"
-            >
-              →
-            </span>
+            {phase !== "sending" && (
+              <span
+                aria-hidden
+                className="text-lg transition-transform group-hover:translate-x-1"
+              >
+                →
+              </span>
+            )}
           </button>
           <div className="flex items-center justify-center gap-2 text-center text-[0.62rem] uppercase leading-4 tracking-[0.16em] text-[#173b73]/38 sm:max-w-32">
             <span className="block size-2 shrink-0 rounded-full bg-[#4d9e4f]" />

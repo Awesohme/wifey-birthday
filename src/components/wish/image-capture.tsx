@@ -29,6 +29,18 @@ export function ImageCapture({
     [previewUrl]
   );
 
+  // Attach the stream only once the <video> element has actually mounted —
+  // assigning srcObject inside openCamera() runs before the conditional video
+  // renders, so videoRef would still be null and the preview stays black.
+  useEffect(() => {
+    if (!cameraOpen) return;
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    if (!video || !stream) return;
+    video.srcObject = stream;
+    void video.play().catch(() => {});
+  }, [cameraOpen]);
+
   async function openCamera() {
     setError(null);
     try {
@@ -36,7 +48,6 @@ export function ImageCapture({
         video: { facingMode: "user" },
       });
       streamRef.current = stream;
-      if (videoRef.current) videoRef.current.srcObject = stream;
       setCameraOpen(true);
     } catch {
       setError("Camera access was blocked. You can upload an image instead.");

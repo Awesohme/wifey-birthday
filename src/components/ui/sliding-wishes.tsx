@@ -6,7 +6,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type FocusEvent as ReactFocusEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { useReducedMotion } from "framer-motion";
@@ -16,6 +15,8 @@ import type { Wish } from "@/lib/config";
 interface SlidingWishesProps {
   wishes: Wish[];
 }
+
+type Direction = "ltr" | "rtl";
 
 const AUTOPLAY_SPEED = 55;
 
@@ -98,13 +99,32 @@ function WishSlide({
   );
 }
 
-export function SlidingWishes({ wishes }: SlidingWishesProps) {
-  const reducedMotion = Boolean(useReducedMotion());
-  const [activeWish, setActiveWish] = useState<Wish | null>(null);
-  const [query, setQuery] = useState("");
-  const [hovering, setHovering] = useState(false);
-  const [focusWithin, setFocusWithin] = useState(false);
-  const [pointerActive, setPointerActive] = useState(false);
+/**
+ * One horizontal marquee row. Owns its own scroll viewport so two rows can
+ * travel independently in opposite directions. `looping` (passed from the
+ * parent) decides whether the autoplay + 3-copy track is active; `paused`
+ * (also from the parent, aggregated across both rows + search + modal) freezes
+ * the autoplay without tearing down the loop.
+ */
+function WishRow({
+  wishes,
+  direction,
+  looping,
+  paused,
+  reducedMotion,
+  onOpen,
+  testId,
+  groupName,
+}: {
+  wishes: Wish[];
+  direction: Direction;
+  looping: boolean;
+  paused: boolean;
+  reducedMotion: boolean;
+  onOpen: (wish: Wish) => void;
+  testId: string;
+  groupName: string;
+}) {
   const [dragging, setDragging] = useState(false);
 
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -115,30 +135,8 @@ export function SlidingWishes({ wishes }: SlidingWishesProps) {
   const mousePressedRef = useRef(false);
   const suppressClickRef = useRef(false);
   const momentumFrameRef = useRef<number | null>(null);
-  const touchResumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const normalizedQuery = query.trim().toLocaleLowerCase();
-  const filteredWishes = useMemo(() => {
-    if (!normalizedQuery) return wishes;
-
-    return wishes.filter((wish) =>
-      [wish.name, wish.relationship, wish.message_text]
-        .filter(Boolean)
-        .join(" ")
-        .toLocaleLowerCase()
-        .includes(normalizedQuery)
-    );
-  }, [normalizedQuery, wishes]);
-
-  const searching = normalizedQuery.length > 0;
-  const looping = !reducedMotion && !searching && filteredWishes.length > 1;
-  const paused =
-    hovering ||
-    focusWithin ||
-    pointerActive ||
-    dragging ||
-    Boolean(activeWish) ||
-    searching;
+  const directionSign = direction === "rtl" ? -1 : 1;
 
   const normalizeScroll = useCallback(() => {
     if (!looping) return;
@@ -153,6 +151,8 @@ export function SlidingWishes({ wishes }: SlidingWishesProps) {
     }
   }, [looping]);
 
+  // Reset to the middle copy whenever the list/looping state changes so the
+  // row has room to travel either direction without immediately wrapping.
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
       const viewport = viewportRef.current;
@@ -162,7 +162,7 @@ export function SlidingWishes({ wishes }: SlidingWishesProps) {
         : 0;
     });
     return () => cancelAnimationFrame(frame);
-  }, [filteredWishes, looping]);
+  }, [wishes, looping]);
 
   useEffect(() => {
     if (!looping || paused) return;
@@ -175,27 +175,22 @@ export function SlidingWishes({ wishes }: SlidingWishesProps) {
 
       const elapsed = Math.min((now - previous) / 1000, 0.05);
       previous = now;
-      viewport.scrollLeft += AUTOPLAY_SPEED * elapsed;
+      viewport.scrollLeft += directionSign * AUTOPLAY_SPEED * elapsed;
       normalizeScroll();
       frame = requestAnimationFrame(tick);
     };
 
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [looping, normalizeScroll, paused]);
+  }, [looping, normalizeScroll, paused, directionSign]);
 
   useEffect(
     () => () => {
-      if (momentumFrameRef.current) cancelAnimationFrame(momentumFrameRef.current);
-      if (touchResumeTimerRef.current) clearTimeout(touchResumeTimerRef.current);
+      if (momentumFrameRef.current)
+        cancelAnimationFrame(momentumFrameRef.current);
     },
     []
   );
-
-  const openWish = useCallback((wish: Wish) => {
-    if (suppressClickRef.current) return;
-    setActiveWish(wish);
-  }, []);
 
   const stopMomentum = () => {
     if (momentumFrameRef.current) {
@@ -205,7 +200,6 @@ export function SlidingWishes({ wishes }: SlidingWishesProps) {
   };
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    setPointerActive(true);
     stopMomentum();
 
     if (event.pointerType !== "mouse" || event.button !== 0) return;
@@ -241,14 +235,7 @@ export function SlidingWishes({ wishes }: SlidingWishesProps) {
   };
 
   const finishPointer = (event: ReactPointerEvent<HTMLDivElement>) => {
-    setPointerActive(false);
-
-    if (event.pointerType !== "mouse") {
-      if (touchResumeTimerRef.current) clearTimeout(touchResumeTimerRef.current);
-      setPointerActive(true);
-      touchResumeTimerRef.current = setTimeout(() => setPointerActive(false), 700);
-      return;
-    }
+    if (event.pointerType !== "mouse") return;
 
     mousePressedRef.current = false;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -282,17 +269,108 @@ export function SlidingWishes({ wishes }: SlidingWishesProps) {
     });
   };
 
-  const handleBlur = (event: ReactFocusEvent<HTMLDivElement>) => {
+  const handleOpen = (wish: Wish) => {
+    if (suppressClickRef.current) return;
+    onOpen(wish);
+  };
+
+  const copies = looping
+    ? (["before", groupName, "after"] as const)
+    : ([groupName] as const);
+
+  return (
+    <div
+      ref={viewportRef}
+      data-testid={testId}
+      onScroll={normalizeScroll}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={finishPointer}
+      onPointerCancel={finishPointer}
+      className={`wishes-slider-viewport overflow-x-auto ${
+        dragging ? "cursor-grabbing select-none" : "cursor-grab"
+      }`}
+      style={{
+        touchAction: "pan-x",
+        overscrollBehaviorX: "contain",
+        maskImage: reducedMotion
+          ? "none"
+          : "linear-gradient(to right, transparent 0%, black 7%, black 93%, transparent 100%)",
+        WebkitMaskImage: reducedMotion
+          ? "none"
+          : "linear-gradient(to right, transparent 0%, black 7%, black 93%, transparent 100%)",
+      }}
+    >
+      <div className="flex w-max">
+        {copies.map((copy) => {
+          const duplicate = copy !== groupName;
+          return (
+            <div
+              key={copy}
+              ref={copy === groupName ? primaryGroupRef : undefined}
+              aria-hidden={duplicate || undefined}
+              data-wish-group={copy}
+              className="wishes-slider-group flex gap-5 pr-5"
+            >
+              {wishes.map((wish) => (
+                <WishSlide
+                  key={`${copy}-${wish.id}`}
+                  wish={wish}
+                  duplicate={duplicate}
+                  onOpen={handleOpen}
+                />
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export function SlidingWishes({ wishes }: SlidingWishesProps) {
+  const reducedMotion = Boolean(useReducedMotion());
+  const [activeWish, setActiveWish] = useState<Wish | null>(null);
+  const [query, setQuery] = useState("");
+  const [hovering, setHovering] = useState(false);
+  const [focusWithin, setFocusWithin] = useState(false);
+
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const filteredWishes = useMemo(() => {
+    if (!normalizedQuery) return wishes;
+
+    return wishes.filter((wish) =>
+      [wish.name, wish.relationship, wish.message_text]
+        .filter(Boolean)
+        .join(" ")
+        .toLocaleLowerCase()
+        .includes(normalizedQuery)
+    );
+  }, [normalizedQuery, wishes]);
+
+  // Second row shows the same wishes rotated to its midpoint so the two rows
+  // don't drift past identical, vertically aligned cards.
+  const secondRowWishes = useMemo(() => {
+    if (filteredWishes.length < 2) return filteredWishes;
+    const offset = Math.floor(filteredWishes.length / 2);
+    return [...filteredWishes.slice(offset), ...filteredWishes.slice(0, offset)];
+  }, [filteredWishes]);
+
+  const searching = normalizedQuery.length > 0;
+  const looping = !reducedMotion && !searching && filteredWishes.length > 1;
+  const paused = hovering || focusWithin || Boolean(activeWish) || searching;
+
+  const openWish = useCallback((wish: Wish) => {
+    setActiveWish(wish);
+  }, []);
+
+  const handleBlur = (event: React.FocusEvent<HTMLDivElement>) => {
     if (!event.currentTarget.contains(event.relatedTarget)) {
       setFocusWithin(false);
     }
   };
 
   if (wishes.length === 0) return null;
-
-  const copies = looping
-    ? (["before", "primary", "after"] as const)
-    : (["primary"] as const);
 
   return (
     <div
@@ -362,51 +440,27 @@ export function SlidingWishes({ wishes }: SlidingWishesProps) {
           </button>
         </div>
       ) : (
-        <div
-          ref={viewportRef}
-          data-testid="wishes-scroller"
-          onScroll={normalizeScroll}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={finishPointer}
-          onPointerCancel={finishPointer}
-          className={`wishes-slider-viewport overflow-x-auto ${
-            dragging ? "cursor-grabbing select-none" : "cursor-grab"
-          }`}
-          style={{
-            touchAction: "pan-x",
-            overscrollBehaviorX: "contain",
-            maskImage: reducedMotion
-              ? "none"
-              : "linear-gradient(to right, transparent 0%, black 7%, black 93%, transparent 100%)",
-            WebkitMaskImage: reducedMotion
-              ? "none"
-              : "linear-gradient(to right, transparent 0%, black 7%, black 93%, transparent 100%)",
-          }}
-        >
-          <div data-testid="wishes-track" className="flex w-max">
-            {copies.map((copy) => {
-              const duplicate = copy !== "primary";
-              return (
-                <div
-                  key={copy}
-                  ref={copy === "primary" ? primaryGroupRef : undefined}
-                  aria-hidden={duplicate || undefined}
-                  data-wish-group={copy}
-                  className="wishes-slider-group flex gap-5 pr-5"
-                >
-                  {filteredWishes.map((wish) => (
-                    <WishSlide
-                      key={`${copy}-${wish.id}`}
-                      wish={wish}
-                      duplicate={duplicate}
-                      onOpen={openWish}
-                    />
-                  ))}
-                </div>
-              );
-            })}
-          </div>
+        <div className="flex flex-col gap-5">
+          <WishRow
+            wishes={filteredWishes}
+            direction="ltr"
+            looping={looping}
+            paused={paused}
+            reducedMotion={reducedMotion}
+            onOpen={openWish}
+            testId="wishes-scroller"
+            groupName="primary"
+          />
+          <WishRow
+            wishes={secondRowWishes}
+            direction="rtl"
+            looping={looping}
+            paused={paused}
+            reducedMotion={reducedMotion}
+            onOpen={openWish}
+            testId="wishes-scroller-2"
+            groupName="primary-2"
+          />
         </div>
       )}
 

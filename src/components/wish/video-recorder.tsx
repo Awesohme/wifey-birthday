@@ -48,6 +48,18 @@ export function VideoRecorder({
     [previewUrl]
   );
 
+  // Attach the live stream once the <video> has mounted. Assigning srcObject in
+  // openCamera() runs before the conditional preview video renders, so the ref
+  // is still null and the preview stays black.
+  useEffect(() => {
+    if (state !== "previewing" && state !== "recording") return;
+    const video = liveVideoRef.current;
+    const stream = streamRef.current;
+    if (!video || !stream) return;
+    video.srcObject = stream;
+    void video.play().catch(() => {});
+  }, [state]);
+
   async function openCamera() {
     setError(null);
     try {
@@ -56,7 +68,6 @@ export function VideoRecorder({
         audio: true,
       });
       streamRef.current = stream;
-      if (liveVideoRef.current) liveVideoRef.current.srcObject = stream;
       setState("previewing");
     } catch {
       setError(

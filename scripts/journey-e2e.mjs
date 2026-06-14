@@ -239,6 +239,19 @@ async function testWishesSearchDragAndLoop(browser) {
     `autoplay only moved ${autoplayEnd - autoplayStart}px`
   );
 
+  // The second row travels the opposite direction. Sample over a short window
+  // (kept under the wrap threshold) so the negative delta is observable.
+  const secondRow = page.getByTestId("wishes-scroller-2");
+  assert.ok((await page.locator('[data-wish-group="primary-2"] button').count()) > 1);
+  await page.mouse.move(10, 10);
+  const reverseStart = await secondRow.evaluate((element) => element.scrollLeft);
+  await page.waitForTimeout(400);
+  const reverseEnd = await secondRow.evaluate((element) => element.scrollLeft);
+  assert.ok(
+    reverseEnd - reverseStart < -10,
+    `second row should scroll left, moved ${reverseEnd - reverseStart}px`
+  );
+
   const box = await scroller.boundingBox();
   assert.ok(box);
   await page.mouse.move(box.x + box.width * 0.7, box.y + box.height * 0.5);
@@ -366,7 +379,8 @@ async function testReducedMotion(browser) {
   await activateCandleAndWait(page, "click", false);
 
   const scroller = page.getByTestId("wishes-scroller");
-  assert.equal(await page.locator("[data-wish-group]").count(), 1);
+  // Two opposite-scrolling rows: one group each (primary + primary-2).
+  assert.equal(await page.locator("[data-wish-group]").count(), 2);
   const reducedStyles = await scroller.evaluate((element) => ({
     overflowX: getComputedStyle(element).overflowX,
     maskImage: getComputedStyle(element).maskImage,
