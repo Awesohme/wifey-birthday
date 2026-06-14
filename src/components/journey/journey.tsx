@@ -189,6 +189,7 @@ export function Journey({
       <HeroSection
         settled={settled}
         heroImage={filmFrames[filmFrames.length - 1]?.src ?? FILM_FRAMES[FILM_FRAMES.length - 1].src}
+        heroImages={filmFrames.map((frame) => frame.src)}
       />
 
       {/* 2. WebGL fly-through — she walks through the wishes in z-space */}

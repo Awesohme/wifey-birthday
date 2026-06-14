@@ -1,7 +1,12 @@
 "use client";
 
-import { useRef } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  motion,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+} from "framer-motion";
 import { HER_NAME } from "@/lib/config";
 import { smoothScrollTo } from "../smooth-scroll";
 
@@ -9,9 +14,17 @@ interface HeroSectionProps {
   /** delays the name/text reveal until the film has settled */
   settled?: boolean;
   heroImage: string;
+  /** optional set of photos to slowly crossfade behind the hero */
+  heroImages?: string[];
 }
 
-export function HeroSection({ settled = true, heroImage }: HeroSectionProps) {
+const CROSSFADE_MS = 6500;
+
+export function HeroSection({
+  settled = true,
+  heroImage,
+  heroImages,
+}: HeroSectionProps) {
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -23,9 +36,33 @@ export function HeroSection({ settled = true, heroImage }: HeroSectionProps) {
   // gentle Ken Burns on the settled film frame
   const bgScale = useTransform(scrollYProgress, [0, 1], [1.04, 1.16]);
 
+  // Up to three distinct photos cycling slowly behind the hero. Falls back to
+  // the single settled film frame when fewer are available.
+  const photos = useMemo(() => {
+    const pool = (heroImages && heroImages.length ? heroImages : [heroImage])
+      .filter(Boolean)
+      .filter((src, index, all) => all.indexOf(src) === index);
+    return pool.slice(0, 3).length ? pool.slice(0, 3) : [heroImage];
+  }, [heroImages, heroImage]);
+
+  const reducedMotion = useReducedMotion();
+  const [activePhoto, setActivePhoto] = useState(0);
+
+  useEffect(() => {
+    if (reducedMotion || photos.length < 2) return;
+    const id = window.setInterval(
+      () => setActivePhoto((current) => (current + 1) % photos.length),
+      CROSSFADE_MS
+    );
+    return () => window.clearInterval(id);
+  }, [photos.length, reducedMotion]);
+
+  // the name reveals word-by-word once the film has settled
+  const nameWords = HER_NAME.split(" ");
+
   return (
     <section ref={ref} className="relative min-h-dvh flex flex-col overflow-hidden bg-[#06222f]">
-      {/* Settled film frame as hero background */}
+      {/* Settled film frames crossfading as the hero background */}
       <motion.div
         className="absolute inset-0 z-0"
         style={{ scale: bgScale }}
@@ -33,13 +70,23 @@ export function HeroSection({ settled = true, heroImage }: HeroSectionProps) {
         animate={{ opacity: settled ? 1 : 0 }}
         transition={{ duration: 1.4, ease: "easeOut" }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element -- remote hero photo, unknown dims */}
-        <img
-          src={heroImage}
-          alt=""
-          className="size-full object-cover"
-          style={{ filter: "brightness(0.6) saturate(1.05)" }}
-        />
+        {photos.map((src, index) => (
+          <motion.div
+            key={src}
+            className="absolute inset-0"
+            initial={false}
+            animate={{ opacity: index === activePhoto ? 1 : 0 }}
+            transition={{ duration: 2.2, ease: "easeInOut" }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element -- remote hero photo, unknown dims */}
+            <img
+              src={src}
+              alt=""
+              className="size-full object-cover"
+              style={{ filter: "brightness(0.6) saturate(1.05)" }}
+            />
+          </motion.div>
+        ))}
       </motion.div>
 
       {/* Ken Burns drift + grade overlay */}
@@ -66,18 +113,31 @@ export function HeroSection({ settled = true, heroImage }: HeroSectionProps) {
           June 22, 2026
         </motion.p>
 
-        <motion.h1
+        <h1
           className="leading-[0.92] tracking-[-0.03em] text-white font-normal"
           style={{
             fontFamily: "var(--font-serif)",
             fontSize: "clamp(4rem, 13vw, 11rem)",
           }}
-          initial={{ opacity: 0, y: 30 }}
-          animate={settled ? { opacity: 1, y: 0 } : {}}
-          transition={{ delay: 0.5, duration: 1 }}
         >
-          {HER_NAME}
-          <em
+          <span className="flex flex-wrap justify-center gap-x-[0.28em]">
+            {nameWords.map((word, index) => (
+              <motion.span
+                key={`${word}-${index}`}
+                className="inline-block"
+                initial={{ opacity: 0, y: 44, rotate: 2 }}
+                animate={settled ? { opacity: 1, y: 0, rotate: 0 } : {}}
+                transition={{
+                  delay: 0.5 + index * 0.18,
+                  duration: 0.9,
+                  ease: [0.2, 0.7, 0.2, 1],
+                }}
+              >
+                {word}
+              </motion.span>
+            ))}
+          </span>
+          <motion.em
             className="block mt-2"
             style={{
               color: "hsl(0 0% 78%)",
@@ -85,10 +145,13 @@ export function HeroSection({ settled = true, heroImage }: HeroSectionProps) {
               fontStyle: "italic",
               letterSpacing: "-0.01em",
             }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={settled ? { opacity: 1, y: 0 } : {}}
+            transition={{ delay: 0.5 + nameWords.length * 0.18, duration: 0.9 }}
           >
             the whole world, in one person
-          </em>
-        </motion.h1>
+          </motion.em>
+        </h1>
 
         <motion.p
           className="mt-8 text-base sm:text-lg leading-relaxed max-w-xl"
