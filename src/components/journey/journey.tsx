@@ -9,7 +9,6 @@ import { FinaleSection } from "./sections/finale";
 import { CursorDog } from "./cursor/cursor-dog";
 import { SmoothScroll, setScrollLocked, resetScroll } from "./smooth-scroll";
 import { FilmIntro } from "./intro/film-intro";
-import { LeaveAWish } from "./leave-a-wish";
 import { GALLERY_PHOTOS } from "./gallery/photos";
 import { FILM_FRAMES, type FilmFrame } from "./intro/film-frames";
 
@@ -178,9 +177,6 @@ export function Journey({
 
       {/* Decorative cursor companion */}
       <CursorDog />
-
-      {/* Persistent "leave a wish" button */}
-      <LeaveAWish />
 
       {/* Glass nav — fades out as you scroll */}
       <LiquidGlassNav onReplayIntro={replayIntro} />
