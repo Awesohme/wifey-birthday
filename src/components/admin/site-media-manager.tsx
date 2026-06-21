@@ -247,6 +247,14 @@ function MediaCard({
   const [year, setYear] = useState(item.year ? String(item.year) : "");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // Show the just-saved values immediately; `router.refresh()` then reconciles
+  // with the server. Without this the card flashes the stale prop values while
+  // the refresh is in flight.
+  const [display, setDisplay] = useState({
+    caption: item.caption,
+    altText: item.alt_text,
+    year: item.year,
+  });
 
   function save() {
     // Validate the year up front so bad input shows instantly without a
@@ -265,6 +273,13 @@ function MediaCard({
         setError(result.error);
         return;
       }
+      // Reflect the saved values right away (mirrors the server's trim/parse),
+      // then refresh so the rest of the page picks up the change too.
+      setDisplay({
+        caption: caption.trim() || null,
+        altText: altText.trim(),
+        year: year.trim() ? Number(year) : null,
+      });
       setEditing(false);
       router.refresh();
     });
@@ -320,10 +335,10 @@ function MediaCard({
         {!editing ? (
           <>
             <p className="truncate text-sm font-medium">
-              {item.caption || item.alt_text || "Untitled image"}
+              {display.caption || display.altText || "Untitled image"}
             </p>
-            {item.year && (
-              <p className="mt-1 text-xs text-foreground/45">{item.year}</p>
+            {display.year && (
+              <p className="mt-1 text-xs text-foreground/45">{display.year}</p>
             )}
             <div className="mt-3 flex items-center gap-1">
               <button
