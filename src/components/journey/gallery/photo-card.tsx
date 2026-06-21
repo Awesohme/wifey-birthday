@@ -30,6 +30,8 @@ export function PhotoCard({ src, alt = "", offsetY = 0 }: PhotoCardProps) {
           src={src}
           alt={alt}
           loading="lazy"
+          decoding="async"
+          style={{ aspectRatio: "3/2" }}
           className="w-full object-cover grayscale-[0.35] group-hover:grayscale-0 group-hover:scale-[1.04] transition-all duration-700 ease-out"
         />
       </div>

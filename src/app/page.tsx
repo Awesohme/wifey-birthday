@@ -61,10 +61,26 @@ export default async function HomePage() {
   const customGallery = siteMedia
     .filter((item) => item.section === "gallery")
     .map((item) => item.url);
+  // Real photos people attached to their wishes (a "with you" shot, a single
+  // image, or an image-type media upload). De-duplicated, in wish order.
+  const wishPhotos = Array.from(
+    new Set(
+      wishes.flatMap((wish) =>
+        [
+          wish.together_image_url,
+          wish.image_url,
+          wish.media_type === "image" ? wish.media_url : null,
+        ].filter((url): url is string => Boolean(url))
+      )
+    )
+  );
+  // Priority: admin-curated gallery → real wish photos → stock placeholders.
   const galleryPhotos =
     customGallery.length > 0
       ? customGallery
-      : GALLERY_PHOTOS.map((photo) => photo.src);
+      : wishPhotos.length > 0
+        ? wishPhotos
+        : GALLERY_PHOTOS.map((photo) => photo.src);
 
   return USE_JOURNEY ? (
     <Journey

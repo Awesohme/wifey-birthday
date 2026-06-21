@@ -47,18 +47,37 @@ function WishSlide({
 }) {
   const initial = wish.name[0]?.toUpperCase() ?? "W";
   const attachment = mediaLabel(wish);
+  const downPos = useRef<{ x: number; y: number } | null>(null);
+
+  // Open on a tap/click that didn't drag. We resolve this on the card's own
+  // pointerup (not the native click) because the surrounding scroll viewport
+  // captures pointers and can swallow the click event entirely.
+  const handlePointerDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    downPos.current = { x: e.clientX, y: e.clientY };
+  };
+  const handlePointerUp = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    const start = downPos.current;
+    downPos.current = null;
+    if (!start) return;
+    const moved = Math.hypot(e.clientX - start.x, e.clientY - start.y);
+    if (moved <= 10) onOpen(wish);
+  };
 
   return (
     <button
       type="button"
       tabIndex={duplicate ? -1 : 0}
-      onClick={() => onOpen(wish)}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onOpen(wish);
+      }}
       aria-label={`Open the wish from ${wish.name}`}
-      className="group flex min-h-72 w-[min(82vw,36rem)] shrink-0 flex-col overflow-hidden rounded-2xl border border-white/15 bg-[linear-gradient(145deg,rgba(35,48,78,0.96),rgba(10,15,29,0.98))] text-left shadow-[0_24px_80px_rgba(0,0,0,0.28)] transition duration-300 hover:-translate-y-1 hover:border-white/30 focus-visible:-translate-y-1 focus-visible:border-white/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-royal-400"
+      className="group flex h-72 w-[min(82vw,36rem)] shrink-0 flex-col overflow-hidden rounded-2xl border border-white/15 bg-[linear-gradient(145deg,rgba(35,48,78,0.96),rgba(10,15,29,0.98))] text-left shadow-[0_24px_80px_rgba(0,0,0,0.28)] transition duration-300 hover:-translate-y-1 hover:border-white/30 focus-visible:-translate-y-1 focus-visible:border-white/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-royal-400"
     >
-      <div className="flex flex-1 items-center px-6 py-8 sm:px-8">
+      <div className="flex min-h-0 flex-1 items-start px-6 py-8 sm:px-8">
         <p
-          className="text-pretty text-2xl leading-tight tracking-[-0.025em] text-white/90 sm:text-3xl"
+          className="line-clamp-4 overflow-hidden text-pretty text-2xl leading-tight tracking-[-0.025em] text-white/90 sm:text-3xl"
           style={{ fontFamily: "var(--font-serif)" }}
         >
           &ldquo;{wish.message_text ?? "A birthday wish made with love."}&rdquo;
@@ -201,6 +220,8 @@ function WishRow({
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     stopMomentum();
+    // Every fresh press starts as a potential click, not a drag.
+    suppressClickRef.current = false;
 
     if (event.pointerType !== "mouse" || event.button !== 0) return;
     mousePressedRef.current = true;
@@ -211,18 +232,25 @@ function WishRow({
     };
     lastPointerRef.current = { x: event.clientX, time: performance.now() };
     velocityRef.current = 0;
-    event.currentTarget.setPointerCapture(event.pointerId);
+    // NOTE: do NOT capture the pointer here — capturing on every mousedown
+    // redirects the follow-up `click` to the viewport, so a card's onClick
+    // never fires and the wish modal can't open. We only capture once an
+    // actual drag begins (see handlePointerMove).
   };
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!mousePressedRef.current || event.pointerType !== "mouse") return;
 
     const movement = event.clientX - pointerStartRef.current.x;
-    if (!dragging && Math.abs(movement) > 4) {
+    // Only treat as a drag past a clear threshold, so a normal click (with a
+    // few px of jitter) still opens the wish instead of being suppressed.
+    if (!dragging && Math.abs(movement) > 10) {
       setDragging(true);
       suppressClickRef.current = true;
+      // Now that we're dragging, capture so the gesture tracks smoothly.
+      event.currentTarget.setPointerCapture(event.pointerId);
     }
-    if (Math.abs(movement) <= 4 && !dragging) return;
+    if (Math.abs(movement) <= 10 && !dragging) return;
 
     const viewport = event.currentTarget;
     viewport.scrollLeft = pointerStartRef.current.scrollLeft - movement * 1.25;
@@ -269,11 +297,6 @@ function WishRow({
     });
   };
 
-  const handleOpen = (wish: Wish) => {
-    if (suppressClickRef.current) return;
-    onOpen(wish);
-  };
-
   const copies = looping
     ? (["before", groupName, "after"] as const)
     : ([groupName] as const);
@@ -317,7 +340,7 @@ function WishRow({
                   key={`${copy}-${wish.id}`}
                   wish={wish}
                   duplicate={duplicate}
-                  onOpen={handleOpen}
+                  onOpen={onOpen}
                 />
               ))}
             </div>
@@ -374,8 +397,8 @@ export function SlidingWishes({ wishes }: SlidingWishesProps) {
 
   return (
     <div
-      onMouseEnter={() => setHovering(true)}
-      onMouseLeave={() => setHovering(false)}
+      onPointerEnter={() => setHovering(true)}
+      onPointerLeave={() => setHovering(false)}
       onFocusCapture={() => setFocusWithin(true)}
       onBlurCapture={handleBlur}
     >
@@ -421,7 +444,7 @@ export function SlidingWishes({ wishes }: SlidingWishesProps) {
 
       {filteredWishes.length === 0 ? (
         <div
-          className="mx-auto flex min-h-72 max-w-xl flex-col items-center justify-center rounded-2xl border border-dashed border-white/15 bg-white/[0.03] px-6 text-center"
+          className="mx-auto flex h-72 max-w-xl flex-col items-center justify-center rounded-2xl border border-dashed border-white/15 bg-white/[0.03] px-6 text-center"
           role="status"
         >
           <p

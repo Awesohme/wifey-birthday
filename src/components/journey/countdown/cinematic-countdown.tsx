@@ -19,7 +19,13 @@ function remaining() {
 /* ---------------------------------------------------------------- */
 /* Living night sky: twinkling stars + rare shooting stars + drift  */
 /* ---------------------------------------------------------------- */
-function StarField({ parallax }: { parallax: { x: number; y: number } }) {
+function StarField({
+  parallax,
+  reduced = false,
+}: {
+  parallax: { x: number; y: number };
+  reduced?: boolean;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const parallaxRef = useRef(parallax);
 
@@ -28,6 +34,8 @@ function StarField({ parallax }: { parallax: { x: number; y: number } }) {
   }, [parallax]);
 
   useEffect(() => {
+    // Never run the animation loop under reduced motion.
+    if (reduced) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -66,7 +74,9 @@ function StarField({ parallax }: { parallax: { x: number; y: number } }) {
       canvas.width = Math.floor(w * dpr);
       canvas.height = Math.floor(h * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const count = Math.min(220, Math.floor((w * h) / 5200));
+      // Cap lower on small/mobile viewports to spare weak GPUs.
+      const cap = w < 640 ? 90 : 220;
+      const count = Math.min(cap, Math.floor((w * h) / 5200));
       stars = Array.from({ length: count }, () => {
         const depth = Math.random();
         return {
@@ -175,7 +185,7 @@ function StarField({ parallax }: { parallax: { x: number; y: number } }) {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
     };
-  }, []);
+  }, [reduced]);
 
   return (
     <canvas
@@ -402,7 +412,20 @@ export function CinematicCountdown() {
       setParallax({ x, y });
     };
     window.addEventListener("pointermove", onMove);
-    window.addEventListener("deviceorientation", onTilt);
+
+    // iOS 13+ gates deviceorientation behind a permission prompt that must be
+    // triggered by a user gesture — attaching the listener here would just sit
+    // dead. Only wire tilt where it can actually fire; pointer parallax covers
+    // the rest, so the effect degrades gracefully.
+    const orientationGated =
+      typeof (
+        DeviceOrientationEvent as unknown as {
+          requestPermission?: () => Promise<string>;
+        }
+      )?.requestPermission === "function";
+    if (!orientationGated) {
+      window.addEventListener("deviceorientation", onTilt);
+    }
     return () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("deviceorientation", onTilt);
@@ -424,7 +447,7 @@ export function CinematicCountdown() {
       />
 
       {/* living starfield + shooting stars */}
-      {!reduced && mounted && <StarField parallax={parallax} />}
+      {!reduced && mounted && <StarField parallax={parallax} reduced={reduced} />}
 
       {/* slow drifting aurora ribbons */}
       <motion.div

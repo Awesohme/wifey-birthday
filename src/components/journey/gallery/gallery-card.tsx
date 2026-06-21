@@ -36,6 +36,8 @@ export function GalleryCard({ wish, offsetY = 0 }: GalleryCardProps) {
             <img
               src={wish.media_url!}
               alt={`Shared by ${wish.name}`}
+              loading="lazy"
+              decoding="async"
               className="w-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
               style={{ aspectRatio: "4/3" }}
             />

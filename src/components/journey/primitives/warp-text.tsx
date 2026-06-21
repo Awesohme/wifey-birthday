@@ -84,14 +84,11 @@ export function WarpText({
   const Tag = tag;
   const fontStyle = serif ? { fontFamily: "var(--font-serif)" } : undefined;
 
-  if (prefersReduced) {
-    return (
-      <Tag className={className} style={fontStyle}>
-        {text}
-      </Tag>
-    );
-  }
-
+  // Render identically on the server and the first client paint to avoid a
+  // hydration mismatch: the visible characters live in an aria-hidden span and
+  // the accessible copy in an sr-only span. Under reduced motion the per-char
+  // transforms simply stay at rest (time never advances), so no branch on the
+  // DOM structure is needed.
   return (
     <Tag className={className} style={fontStyle}>
       <span aria-hidden>

@@ -8,6 +8,7 @@ import {
   useTransform,
 } from "framer-motion";
 import { HER_NAME } from "@/lib/config";
+import { preloadImages } from "@/lib/preload-images";
 import { smoothScrollTo } from "../smooth-scroll";
 
 interface HeroSectionProps {
@@ -48,6 +49,11 @@ export function HeroSection({
   const reducedMotion = useReducedMotion();
   const [activePhoto, setActivePhoto] = useState(0);
 
+  // Warm every crossfade frame up front so none pop in mid-transition.
+  useEffect(() => {
+    preloadImages(photos);
+  }, [photos]);
+
   useEffect(() => {
     if (reducedMotion || photos.length < 2) return;
     const id = window.setInterval(
@@ -82,6 +88,8 @@ export function HeroSection({
             <img
               src={src}
               alt=""
+              decoding="async"
+              fetchPriority={index === 0 ? "high" : "low"}
               className="size-full object-cover"
               style={{ filter: "brightness(0.6) saturate(1.05)" }}
             />
@@ -160,8 +168,9 @@ export function HeroSection({
           animate={settled ? { opacity: 1, y: 0 } : {}}
           transition={{ delay: 0.7, duration: 0.8 }}
         >
-          The people who love her most gathered here — across cities, time
-          zones, and hearts — to say the one thing that never changes.
+          Everyone who loves you gathered here — across cities, time zones, and
+          hearts — to say the one thing that never changes. This was made for
+          you.
         </motion.p>
 
         <motion.button
@@ -177,15 +186,6 @@ export function HeroSection({
         >
           Begin
         </motion.button>
-        <motion.a
-          href="/wish"
-          className="mt-5 text-xs uppercase tracking-[0.24em] text-white/50 underline decoration-white/20 underline-offset-8 transition hover:text-white"
-          initial={{ opacity: 0 }}
-          animate={settled ? { opacity: 1 } : {}}
-          transition={{ delay: 1.1, duration: 0.8 }}
-        >
-          Leave her a wish
-        </motion.a>
       </motion.div>
 
       <div className="relative z-10 flex justify-center pb-8">

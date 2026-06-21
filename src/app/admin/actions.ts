@@ -230,17 +230,13 @@ export async function deleteSiteMedia(formData: FormData): Promise<void> {
   revalidatePath("/");
 }
 
-export async function moveSiteMedia(formData: FormData): Promise<void> {
+export async function reorderSiteMedia(
+  section: SiteMediaSection,
+  orderedIds: string[]
+): Promise<{ ok: true } | { ok: false; error: string }> {
   await requireAdmin();
-  const id = String(formData.get("id") ?? "");
-  const direction = String(formData.get("direction") ?? "");
-  const section = String(formData.get("section") ?? "");
-  if (
-    !id ||
-    !["up", "down"].includes(direction) ||
-    !["film", "gallery"].includes(section)
-  ) {
-    return;
+  if (!["film", "gallery"].includes(section)) {
+    return { ok: false, error: "Choose a valid site section." };
   }
 
   const admin = createAdminClient();
@@ -249,22 +245,65 @@ export async function moveSiteMedia(formData: FormData): Promise<void> {
     .select("id, sort_order")
     .eq("section", section)
     .order("sort_order", { ascending: true });
-  const ordered = data ?? [];
-  const currentIndex = ordered.findIndex((item) => item.id === id);
-  const targetIndex =
-    direction === "up" ? currentIndex - 1 : currentIndex + 1;
-  const current = ordered[currentIndex];
-  const target = ordered[targetIndex];
-  if (!current || !target) return;
+  const existing = data ?? [];
 
-  await admin
-    .from("site_media")
-    .update({ sort_order: target.sort_order })
-    .eq("id", current.id);
-  await admin
-    .from("site_media")
-    .update({ sort_order: current.sort_order })
-    .eq("id", target.id);
+  // Reject if the submitted ids don't exactly match what's stored (stale/forged).
+  const existingIds = new Set(existing.map((item) => item.id));
+  if (
+    orderedIds.length !== existingIds.size ||
+    !orderedIds.every((id) => existingIds.has(id))
+  ) {
+    return { ok: false, error: "The order is out of date. Refresh and retry." };
+  }
+
+  // Only write rows whose position actually changed.
+  const currentRank = new Map(
+    existing.map((item) => [item.id, Number(item.sort_order)])
+  );
+  const updates = orderedIds
+    .map((id, index) => ({ id, index }))
+    .filter(({ id, index }) => currentRank.get(id) !== index);
+
+  if (updates.length) {
+    await Promise.all(
+      updates.map(({ id, index }) =>
+        admin.from("site_media").update({ sort_order: index }).eq("id", id)
+      )
+    );
+  }
+
   revalidatePath("/admin");
   revalidatePath("/");
+  return { ok: true };
+}
+
+export async function updateSiteMedia(
+  id: string,
+  fields: { altText: string; caption: string; year: string }
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requireAdmin();
+  if (!id) return { ok: false, error: "Missing image." };
+
+  const parsedYear = fields.year ? Number(fields.year) : null;
+  if (
+    parsedYear !== null &&
+    (!Number.isInteger(parsedYear) || parsedYear < 1900 || parsedYear > 2100)
+  ) {
+    return { ok: false, error: "Enter a valid four-digit year." };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("site_media")
+    .update({
+      alt_text: fields.altText.trim().slice(0, 180),
+      caption: fields.caption.trim().slice(0, 180) || null,
+      year: parsedYear,
+    })
+    .eq("id", id);
+  if (error) return { ok: false, error: "Could not save this image." };
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+  return { ok: true };
 }

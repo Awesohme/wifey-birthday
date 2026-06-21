@@ -10,6 +10,7 @@ import {
 } from "./film-frames";
 import { useProjectorSound } from "./use-projector-sound";
 import { HER_NAME } from "@/lib/config";
+import { preloadImages } from "@/lib/preload-images";
 
 const FRAME_MS = 1500; // time each photo holds
 const BLACK_MS = 600; // initial black hold before the light blooms
@@ -35,6 +36,12 @@ export function FilmIntro({
 
   const safeFrames = frames.length > 0 ? frames : FILM_FRAMES;
   const isLastFrame = index >= safeFrames.length - 1;
+
+  // Decode every reel frame before the projector starts so none pop on advance.
+  useEffect(() => {
+    preloadImages(safeFrames.map((frame) => frame.src));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [frames]);
 
   const finish = () => {
     if (doneRef.current) return;
@@ -149,6 +156,7 @@ export function FilmIntro({
                     key={frame.src}
                     src={frame.src}
                     alt=""
+                    decoding="async"
                     initial={{ y: "100%" }}
                     animate={{ y: "0%" }}
                     exit={{ y: "-100%" }}

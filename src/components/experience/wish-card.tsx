@@ -1,14 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import type { Wish } from "@/lib/config";
 
 export function WishCard({ wish, onClose }: { wish: Wish | null; onClose: () => void }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -43,7 +40,7 @@ export function WishCard({ wish, onClose }: { wish: Wish | null; onClose: () => 
     };
   }, [wish]);
 
-  if (!mounted) return null;
+  if (typeof document === "undefined") return null;
 
   // Portal to <body> so the overlay escapes the wishes marquee's pointer
   // handlers + scroll context (which were trapping the modal's own scroll).
