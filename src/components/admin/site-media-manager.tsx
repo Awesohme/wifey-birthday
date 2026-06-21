@@ -221,7 +221,10 @@ function MediaSectionList({
           axis="y"
           values={order}
           onReorder={persist}
-          className="grid gap-3 sm:grid-cols-2"
+          // Single column so a plain up/down drag reaches every position.
+          // framer-motion's Reorder only tracks one axis, so a 2-col grid left
+          // half the moves (crossing columns) impossible to drag.
+          className="flex flex-col gap-3"
         >
           {order.map((item) => (
             <MediaCard key={item.id} item={item} section={section} />
@@ -298,15 +301,15 @@ function MediaCard({
       value={item}
       dragListener={false}
       dragControls={dragControls}
-      className="overflow-hidden rounded-2xl border border-leaf-900/10 bg-white"
+      className="flex overflow-hidden rounded-2xl border border-leaf-900/10 bg-white"
     >
-      <div className="relative">
+      <div className="relative w-28 shrink-0 sm:w-40">
         {/* eslint-disable-next-line @next/next/no-img-element -- Supabase-managed image */}
         <img
           src={item.url}
           alt={item.alt_text}
           decoding="async"
-          className="aspect-video w-full object-cover"
+          className="h-full w-full object-cover"
         />
         <button
           type="button"
@@ -331,7 +334,7 @@ function MediaCard({
         </button>
       </div>
 
-      <div className="p-4">
+      <div className="min-w-0 flex-1 p-4">
         {!editing ? (
           <>
             <p className="truncate text-sm font-medium">
