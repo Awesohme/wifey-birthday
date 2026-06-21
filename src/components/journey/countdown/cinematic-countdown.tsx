@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { HER_NAME, UNLOCK_AT } from "@/lib/config";
 import { WishButton } from "./wish-button";
@@ -325,6 +326,7 @@ function FlipUnit({
 /* Zero-hour bloom: stars rush forward, golden flash, name forms    */
 /* ---------------------------------------------------------------- */
 function RevealBloom({ reduced }: { reduced: boolean }) {
+  const router = useRouter();
   const letters = `Happy Birthday, ${HER_NAME}`.split("");
 
   return (
@@ -371,7 +373,14 @@ function RevealBloom({ reduced }: { reduced: boolean }) {
         transition={{ delay: 0.5 + letters.length * 0.045 + 0.4, duration: 0.8 }}
         className="mt-12"
       >
-        <WishButton href="/">Open my surprise</WishButton>
+        <WishButton
+          href="/"
+          // Re-run the server check (isUnlocked) before navigating so a click
+          // the instant the clock flips can never land back on the countdown.
+          onClick={() => router.refresh()}
+        >
+          Open my surprise
+        </WishButton>
       </motion.div>
     </motion.div>
   );

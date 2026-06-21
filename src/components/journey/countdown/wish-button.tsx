@@ -10,13 +10,16 @@ import Link from "next/link";
 export function WishButton({
   href,
   children,
+  onClick,
 }: {
   href: string;
   children: React.ReactNode;
+  onClick?: () => void;
 }) {
   return (
     <Link
       href={href}
+      onClick={onClick}
       className="group relative inline-flex min-h-13 items-center gap-3 overflow-hidden rounded-full border border-[#d6b36b]/45 bg-[#f7ead1]/[0.04] px-9 py-4 text-sm font-medium text-[#f7ead1] backdrop-blur-sm transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-[#d6b36b]/80"
       style={{ boxShadow: "0 0 0 rgba(214,179,107,0)" }}
     >
