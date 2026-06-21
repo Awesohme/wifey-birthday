@@ -28,8 +28,11 @@ export function FlyScene({
   useFrame(({ camera }, delta) => {
     const offset = Math.min(1, Math.max(0, progressRef.current));
     const target = START_Z - offset * depth;
-    // smooth chase so it glides rather than snaps
-    camera.position.z += (target - camera.position.z) * Math.min(1, delta * 5);
+    // Track scroll tightly so the camera never trails far behind on fast
+    // scrolls (which left the screen blank). A high catch-up factor keeps it
+    // glued to the scroll position while still smoothing tiny jitter; clamped
+    // to 1 so it can't overshoot.
+    camera.position.z += (target - camera.position.z) * Math.min(1, delta * 12);
 
     // subtle drift/sway for a "walking" feel
     const t = offset * depth;

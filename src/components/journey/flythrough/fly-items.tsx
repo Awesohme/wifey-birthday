@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { Suspense, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Text, Image as DreiImage, Billboard } from "@react-three/drei";
 import type { Group } from "three";
@@ -13,8 +13,10 @@ function useDepthFade(z: number, ref: React.RefObject<Group | null>) {
     const dist = camera.position.z - z; // positive = item is ahead
     // visible window: emerges far in the fog (~20u), fully lit by ~9u,
     // fades as it passes behind — overlaps so there's never a dead frame
+    // Wider visible window (emerge ~24u out, hold until ~11u, fade as passed)
+    // so consecutive items overlap and there's never an empty frame.
     let opacity = 1;
-    if (dist > 9) opacity = Math.max(0, 1 - (dist - 9) / 11);
+    if (dist > 11) opacity = Math.max(0, 1 - (dist - 11) / 13);
     else if (dist < 2.5) opacity = Math.max(0, dist / 2.5);
     ref.current.traverse((o) => {
       const m = (o as unknown as { material?: { opacity?: number; transparent?: boolean } })
@@ -46,6 +48,22 @@ export function LandmarkItem({ item }: { item: Extract<FlyItem, { kind: "landmar
       >
         {item.text}
       </Text>
+      {item.subtitle && (
+        <Text
+          font={BODY_FONT}
+          fontSize={item.size * 0.34}
+          color="#15263a"
+          fillOpacity={0.6}
+          anchorX="center"
+          anchorY="middle"
+          textAlign="center"
+          maxWidth={7}
+          lineHeight={1.2}
+          position={[0, -item.size * 0.85, 0]}
+        >
+          {item.subtitle}
+        </Text>
+      )}
     </group>
   );
 }
@@ -90,9 +108,13 @@ export function PhotoItem({ item }: { item: Extract<FlyItem, { kind: "photo" }> 
   const s = item.scale ?? 4;
   return (
     <group ref={ref} position={[item.x ?? 0, item.y ?? 0, item.z]}>
-      <Billboard follow={false}>
-        <DreiImage url={item.src} scale={[s, s * 0.72]} transparent radius={0.12} />
-      </Billboard>
+      {/* Per-photo Suspense so one still-loading texture never blanks the whole
+          flight — each image simply pops in when its texture is ready. */}
+      <Suspense fallback={null}>
+        <Billboard follow={false}>
+          <DreiImage url={item.src} scale={[s, s * 0.72]} transparent radius={0.12} />
+        </Billboard>
+      </Suspense>
     </group>
   );
 }

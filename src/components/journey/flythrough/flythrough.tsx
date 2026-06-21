@@ -2,11 +2,12 @@
 
 import { Suspense, useRef, useState, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
-import { Preload } from "@react-three/drei";
 import { useScroll, useMotionValueEvent } from "framer-motion";
 import type { Wish } from "@/lib/config";
 import { FlyScene } from "./fly-scene";
 import { buildItems, flightDepth } from "./types";
+import { useWebGLSupport } from "@/components/experience/three/webgl-detector";
+import { CanvasErrorBoundary } from "@/components/shared/canvas-guard";
 
 interface FlythroughProps {
   wishes: Wish[];
@@ -14,19 +15,40 @@ interface FlythroughProps {
 }
 
 /**
- * A fly-through driven by the PAGE's own scroll. A tall section holds a
- * sticky full-viewport canvas; as the section scrolls past, the camera flies
- * forward through floating wishes, name landmarks, and photos in z-space.
- * Composes naturally with the hero above and gallery below — no scroll hijack.
+ * Gate: decides between the WebGL fly-through and skipping it entirely.
+ *
+ * The fly-through is purely decorative (names + photos flying past) — the
+ * actual wishes live in the grid under the candle (FinaleSection), so there is
+ * nothing to lose when WebGL is unavailable. We simply omit the section and the
+ * page flows hero → candle + wishes. Keeping the scroll/canvas hooks inside
+ * FlyCanvas means framer-motion's useScroll never binds to an unmounted ref.
  */
 export function Flythrough({ wishes, photos }: FlythroughProps) {
+  const webgl = useWebGLSupport();
+
+  // No WebGL (older/locked-down devices) or still detecting — skip the
+  // decorative flight; the wishes under the candle are unaffected.
+  if (webgl !== true) {
+    return null;
+  }
+
+  return (
+    <CanvasErrorBoundary fallback={null}>
+      <FlyCanvas wishes={wishes} photos={photos} />
+    </CanvasErrorBoundary>
+  );
+}
+
+function FlyCanvas({ wishes, photos }: FlythroughProps) {
   const sectionRef = useRef<HTMLElement>(null);
   const progressRef = useRef(0);
   const [ready, setReady] = useState(false);
 
   const items = buildItems(wishes, photos);
   const depth = flightDepth(items);
-  const pages = Math.max(4, depth / 8);
+  // Shorter scroll track (denser flight) so there's less empty travel between
+  // landmarks — the previous depth/8 made very long blank stretches.
+  const pages = Math.max(4, depth / 11);
 
   const { scrollYProgress } = useScroll({
     target: sectionRef,
@@ -51,6 +73,12 @@ export function Flythrough({ wishes, photos }: FlythroughProps) {
     >
       <div className="sticky top-0 h-dvh w-full overflow-hidden bg-[#f4f8fb]">
         <Canvas
+          // Fill the sticky container explicitly. Without this the R3F canvas
+          // could get stuck at its default 300×150 (resize observer measuring a
+          // not-yet-laid-out sticky parent), leaving the flight blank in a
+          // corner. `offsetSize` makes R3F size from the parent's offset box.
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+          resize={{ offsetSize: true }}
           dpr={[1, 1.75]}
           gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
           camera={{ fov: 62, near: 0.1, far: 120, position: [0, 0, 8] }}
@@ -60,9 +88,11 @@ export function Flythrough({ wishes, photos }: FlythroughProps) {
           <fog attach="fog" args={["#f4f8fb", 16, 34]} />
           <ambientLight intensity={1} />
 
+          {/* Text fonts suspend while Troika loads them. Keep this boundary
+              around the scene, but let each photo stream in independently
+              inside PhotoItem so images never block the full flight. */}
           <Suspense fallback={null}>
             <FlyScene wishes={wishes} photos={photos} progressRef={progressRef} />
-            <Preload all />
           </Suspense>
         </Canvas>
 

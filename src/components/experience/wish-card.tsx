@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import type { Wish } from "@/lib/config";
 
 export function WishCard({ wish, onClose }: { wish: Wish | null; onClose: () => void }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -13,7 +17,37 @@ export function WishCard({ wish, onClose }: { wish: Wish | null; onClose: () => 
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  return (
+  // Lock body scroll while open so the page behind doesn't move.
+  useEffect(() => {
+    if (!wish) return;
+    const scrollY = window.scrollY;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevBodyPosition = document.body.style.position;
+    const prevBodyTop = document.body.style.top;
+    const prevBodyWidth = document.body.style.width;
+
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+
+    return () => {
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.body.style.overflow = prevBodyOverflow;
+      document.body.style.position = prevBodyPosition;
+      document.body.style.top = prevBodyTop;
+      document.body.style.width = prevBodyWidth;
+      window.scrollTo(0, scrollY);
+    };
+  }, [wish]);
+
+  if (!mounted) return null;
+
+  // Portal to <body> so the overlay escapes the wishes marquee's pointer
+  // handlers + scroll context (which were trapping the modal's own scroll).
+  return createPortal(
     <AnimatePresence>
       {wish && (
         <motion.div
@@ -27,12 +61,14 @@ export function WishCard({ wish, onClose }: { wish: Wish | null; onClose: () => 
             role="dialog"
             aria-modal="true"
             aria-label={`Wish from ${wish.name}`}
-            className="max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-3xl border border-white/50 bg-white/80 p-6 shadow-[0_24px_70px_-12px_rgba(31,55,173,0.45),0_0_40px_rgba(93,126,240,0.18)] backdrop-blur-2xl sm:p-8"
+            className="max-h-[85dvh] w-full max-w-md touch-pan-y overscroll-contain overflow-y-auto rounded-3xl border border-white/50 bg-white/80 p-6 shadow-[0_24px_70px_-12px_rgba(31,55,173,0.45),0_0_40px_rgba(93,126,240,0.18)] backdrop-blur-2xl sm:p-8"
             initial={{ y: 60, scale: 0.92, opacity: 0 }}
             animate={{ y: 0, scale: 1, opacity: 1 }}
             exit={{ y: 40, scale: 0.95, opacity: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 28 }}
             onClick={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between">
               <span className="text-2xl" aria-hidden>🦋</span>
@@ -113,6 +149,7 @@ export function WishCard({ wish, onClose }: { wish: Wish | null; onClose: () => 
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
