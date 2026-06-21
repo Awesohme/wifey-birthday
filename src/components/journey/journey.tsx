@@ -56,7 +56,7 @@ const FALLBACK_WISHES: Wish[] = [
     name: "Your best friend",
     relationship: "partner in everything",
     message_text:
-      "Another year of you being the brightest person in every room. Never change. Okay, change a little — answer your phone.",
+      "Another year of you being the brightest person in every room. Never change. Okay, change a little. Answer your phone.",
     media_url: null,
     media_type: null,
     status: "approved",

@@ -161,7 +161,7 @@ export function FilmIntro({
                     animate={{ y: "0%" }}
                     exit={{ y: "-100%" }}
                     transition={{ duration: 0.7, ease: [0.65, 0, 0.35, 1] }}
-                    className="absolute inset-0 h-full w-full object-cover"
+                    className="absolute inset-0 h-full w-full object-contain"
                     style={{ filter: grade }}
                     draggable={false}
                   />

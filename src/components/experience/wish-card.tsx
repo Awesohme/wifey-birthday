@@ -140,7 +140,7 @@ export function WishCard({ wish, onClose }: { wish: Wish | null; onClose: () => 
             )}
 
             <p className="mt-5 text-right text-sm text-foreground/60">
-              — <span className="font-semibold text-royal-700">{wish.name}</span>
+              <span className="font-semibold text-royal-700">{wish.name}</span>
               {wish.relationship ? `, ${wish.relationship}` : ""}
             </p>
           </motion.div>

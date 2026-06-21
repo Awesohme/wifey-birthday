@@ -96,7 +96,7 @@ export function WishItem({ item }: { item: Extract<FlyItem, { kind: "wish" }> })
         maxWidth={7.5}
         position={[0, -1.4, 0]}
       >
-        {`— ${item.wish.name}${item.wish.relationship ? ", " + item.wish.relationship : ""}`}
+        {`${item.wish.name}${item.wish.relationship ? ", " + item.wish.relationship : ""}`}
       </Text>
     </group>
   );

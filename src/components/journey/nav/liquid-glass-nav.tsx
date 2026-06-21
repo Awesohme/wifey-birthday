@@ -25,13 +25,6 @@ export function LiquidGlassNav({ onReplayIntro }: LiquidGlassNavProps) {
       </span>
 
       <div className="flex items-center gap-3">
-        <a
-          href="/wish"
-          className="pointer-events-auto hidden text-xs uppercase tracking-[0.18em] text-white/50 transition-colors hover:text-white/90 sm:block"
-          style={{ fontFamily: "var(--font-body)" }}
-        >
-          Leave a wish
-        </a>
         {onReplayIntro && (
           <button
             onClick={onReplayIntro}

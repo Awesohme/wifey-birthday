@@ -168,8 +168,8 @@ export function HeroSection({
           animate={settled ? { opacity: 1, y: 0 } : {}}
           transition={{ delay: 0.7, duration: 0.8 }}
         >
-          Everyone who loves you gathered here — across cities, time zones, and
-          hearts — to say the one thing that never changes. This was made for
+          Everyone who loves you gathered here, across cities, time zones, and
+          hearts, to say the one thing that never changes. This was made for
           you.
         </motion.p>
 
